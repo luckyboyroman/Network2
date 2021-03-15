@@ -6,6 +6,10 @@ double NetWork::sigm_pro(double x)
 	double res = x * (1 - x);
 	return res;
 }
+double NetWork::ReLUpro(double x) {
+	if (fabs(x) < 1e-9 || fabs(x - 1) < 1e-9) return 0;
+	return 1;
+}
 void NetWork::SetLayers(int n, int* size) {
 	srand(time(NULL));
 	this->n = n;
@@ -20,7 +24,7 @@ void NetWork::SetLayers(int n, int* size) {
 			for (int j = 0; j < size[i]; ++j) {
 				weights[i][j] = new double[size[i + 1]];
 				for (int k = 0; k < size[i + 1]; ++k) {
-					weights[i][j][k] = (rand() % 60) / (90.0);
+					weights[i][j][k] = ((rand() % 100)) * 0.03 / (size[i] + 15);
 				}
 			}
 		}
@@ -65,7 +69,7 @@ void NetWork::Show() {
 		cout << endl;
 	}
 }
-void NetWork::SetInput(const vector<double>& values) {
+void NetWork::SetInput(double* values) {
 	for (int i = 0; i < size[0]; i++) {
 		neurons[0][i].value = values[i];
 	}
@@ -81,19 +85,73 @@ double NetWork::forward_feed() {
 			neurons[k][i].act();
 		}
 	}
-	return neurons[n - 1][0].value;
+	double max = neurons[n - 1][0].value;
+	double prediction = 0;
+	double tmp;
+	for (int j = 1; j < size[n - 1]; j++) {
+		tmp = neurons[n - 1][j].value;
+		if (tmp > max) {
+			prediction = j;
+			max = tmp;
+		}
+	}
+	//for (int j = 0; j < size[n - 1]; j++) {
+	//	cout << j <<" " << neurons[n - 1][j].value << endl;
+	//}
+	//cout << "Predict: " << prediction << endl;
+	return prediction;
 }
+double NetWork::forward_feed(bool flag) {
+	for (int k = 1; k < n; ++k) {
+		for (int i = 0; i < size[k]; ++i) {
+			double sum = 0.0;
+			for (int j = 0; j < size[k - 1]; ++j) {
+				sum += neurons[k - 1][j].value * weights[k - 1][j][i];
+			}
+			neurons[k][i].value = sum; //+ShiftWeights[k][i]
+			neurons[k][i].act();
+		}
+	}
+	double max = neurons[n - 1][0].value;
+	double prediction = 0;
+	double tmp;
+	for (int j = 1; j < size[n - 1]; j++) {
+		tmp = neurons[n - 1][j].value;
+		if (tmp > max) {
+			prediction = j;
+			max = tmp;
+		}
+	}
+	for (int j = 0; j < size[n - 1]; j++) {
+		cout << j <<" " << neurons[n - 1][j].value << endl;
+	}
+	return prediction;
+}
+
 void NetWork::BackPropogation(double expect) {
-	neurons[n - 1][0].error = expect - neurons[n - 1][0].value;
-	for (int i = n - 2; i > 0; --i) {
-		for (int j = 0; j < size[i]; ++j) {
+	for (int i = 0; i < size[n - 1]; i++) {
+		if (i != int(expect)) neurons[n - 1][i].error = -pow(neurons[n - 1][i].value, 2);
+		else neurons[n - 1][i].error = pow(1.0 - neurons[n - 1][i].value, 2);
+	}
+	//cout << "Errors: " << endl;
+	//for (int j = 0; j < size[n - 1]; j++) cout << neurons[n - 1][j].error << endl;
+
+	for (int i = n - 2; i > 0; i--) {
+		for (int j = 0; j < size[i]; j++) {
 			double error = 0.0;
-			for (int k = 0; k < size[i + 1]; ++k) {
+			for (int k = 0; k < size[i + 1]; k++) {
 				error += neurons[i + 1][k].error * weights[i][j][k];
 			}
 			neurons[i][j].error = error;
 		}
 	}
+}
+double NetWork::ErrorCounter() {
+	double err = 0;
+	for (int i = 0; i < size[n - 1]; i++) {
+		err += neurons[n - 1][i].error;
+	}
+	return err;
 }
 void NetWork::WeightsUpdater(double lr) {
 	for (int i = 0; i < n - 1; ++i) {
