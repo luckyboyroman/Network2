@@ -22,13 +22,16 @@ public:
 	neuron** neurons;
 	double*** weights;
 	double sigm_pro(double x);
+	double ReLUpro(double x);
 	void SetLayers(int n, int* size);
 	void SaveWeights();
 	void ReadWeights();
 	void Show();
 	void ShowWeights();
-	void SetInput(const vector<double>& values);
+	void SetInput(double* values);
 	double forward_feed();
+	double forward_feed(bool flag);
 	void BackPropogation(double expect);
+	double ErrorCounter();
 	void WeightsUpdater(double lr);
 };
